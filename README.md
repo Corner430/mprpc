@@ -13,6 +13,9 @@
   - [3 总结](#3-总结)
   - [4 项目结构](#4-项目结构)
 
+1. 使用方式：包含 `include` 目录，链接 `lib` 目录下的 `libmprpc.a` 库文件，即可使用 mprpc 框架。具体使用方式可参考 `example` 目录下的示例代码。
+2. 开发环境：muduo、protobuf、zookeeper、C++11
+
 # 分布式网络通信 rpc 框架
 
 ## 1 RPC 概述
@@ -610,58 +613,48 @@ Logger::Logger()
 ├── example                         # 框架使用示例代码
 │   ├── callee                      # 示例中服务的实现
 │   │   ├── CMakeLists.txt          # callee 子目录的 CMake 构建配置文件
-│   │   ├── friendservice.cc        # 实现 FriendService 服务的源文件
-│   │   └── userservice.cc          # 实现 UserService 服务的源文件
+│   │   ├── friendservice.cc
+│   │   └── userservice.cc
 │   ├── caller                      # 示例中服务调用的客户端实现
-│   │   ├── callfriendservice.cc    # 调用 FriendService 服务的源文件
-│   │   ├── calluserservice.cc      # 调用 UserService 服务的源文件
+│   │   ├── callfriendservice.cc
+│   │   ├── calluserservice.cc
 │   │   └── CMakeLists.txt          # caller 子目录的 CMake 构建配置文件
 │   ├── CMakeLists.txt              # example 目录的 CMake 构建配置文件
-│   ├── friend.pb.cc                # 由 protobuf 生成的 Friend 服务的实现文件
-│   ├── friend.pb.h                 # 由 protobuf 生成的 Friend 服务的头文件
-│   ├── friend.proto                # Friend 服务的 protobuf 定义文件
-│   ├── user.pb.cc                  # 由 protobuf 生成的 User 服务的实现文件
-│   ├── user.pb.h                   # 由 protobuf 生成的 User 服务的头文件
-│   └── user.proto                  # User 服务的 protobuf 定义文件
+│   ├── friend.pb.cc
+│   ├── friend.pb.h
+│   ├── friend.proto                # Friend 相关服务（获取好友列表）的 protobuf 定义文件
+│   ├── user.pb.cc
+│   ├── user.pb.h
+│   └── user.proto                  # User 相关服务（登记注册）的 protobuf 定义文件
 ├── lib                             # 库文件目录
-│   ├── include                     # 头文件目录
-│   │   ├── lockqueue.h             # 锁队列的头文件
-│   │   ├── logger.h                # 日志记录器的头文件
-│   │   ├── mprpcapplication.h      # mprpc 应用程序相关的头文件
-│   │   ├── mprpcchannel.h          # mprpc 通道的头文件
-│   │   ├── mprpcconfig.h           # mprpc 配置的头文件
-│   │   ├── mprpccontroller.h       # mprpc 控制器的头文件
-│   │   ├── rpcheader.pb.h          # 由 protobuf 生成的 RPC 头文件
-│   │   ├── rpcprovider.h           # RPC 提供者的头文件
-│   │   └── zookeeperutil.h         # Zookeeper 工具的头文件
 │   └── libmprpc.a                  # 编译生成的 mprpc 静态库
+├── include                         # 头文件目录
+│   ├── lockqueue.h                 # 锁队列的头文件
+│   ├── logger.h                    # 日志记录器的头文件
+│   ├── mprpcapplication.h          # mprpc 框架的单例基础类，负责框架的一些初始化操作
+│   ├── mprpcchannel.h              # mprpc 通道的头文件
+│   ├── mprpcconfig.h               # 读取配置文件：rpcserverip:port, zookeeperip:port
+│   ├── mprpccontroller.h           # mprpc 控制器的头文件
+│   ├── rpcheader.pb.h              # 由 protobuf 生成的 RPC 头文件
+│   ├── rpcprovider.h               # RPC 提供者的头文件
+│   └── zookeeperutil.h             # Zookeeper 工具的头文件
 ├── README.md                       # 项目说明文件
 ├── src                             # 源代码目录
 │   ├── CMakeLists.txt              # src 目录的 CMake 构建配置文件
-│   ├── include                     # 头文件目录
-│   │   ├── lockqueue.h             # 锁队列的头文件
-│   │   ├── logger.h                # 日志记录器的头文件
-│   │   ├── mprpcapplication.h      # mprpc 应用程序相关的头文件
-│   │   ├── mprpcchannel.h          # mprpc 通道的头文件
-│   │   ├── mprpcconfig.h           # mprpc 配置的头文件
-│   │   ├── mprpccontroller.h       # mprpc 控制器的头文件
-│   │   ├── rpcheader.pb.h          # 由 protobuf 生成的 RPC 头文件
-│   │   ├── rpcprovider.h           # RPC 提供者的头文件
-│   │   └── zookeeperutil.h         # Zookeeper 工具的头文件
-│   ├── logger.cc                  # 日志记录器的实现文件
-│   ├── mprpcapplication.cc        # mprpc 应用程序相关的实现文件
-│   ├── mprpcchannel.cc            # mprpc 通道的实现文件
-│   ├── mprpcconfig.cc             # mprpc 配置的实现文件
-│   ├── mprpccontroller.cc         # mprpc 控制器的实现文件
-│   ├── rpcheader.pb.cc            # 由 protobuf 生成的 RPC 实现文件
+│   ├── logger.cc
+│   ├── mprpcapplication.cc
+│   ├── mprpcchannel.cc
+│   ├── mprpcconfig.cc
+│   ├── mprpccontroller.cc
+│   ├── rpcheader.pb.cc
 │   ├── rpcheader.proto            # RPC 协议的 protobuf 定义文件
-│   ├── rpcprovider.cc             # RPC 提供者的实现文件
-│   └── zookeeperutil.cc           # Zookeeper 工具的实现文件
+│   ├── rpcprovider.cc
+│   └── zookeeperutil.cc
 └── test                           # 测试代码目录
     └── protobuf                   # 处理 protobuf 的测试
         ├── main                   # 编译生成的测试可执行文件
         ├── main.cc                # 测试的主程序文件
-        ├── test.pb.cc             # 由 protobuf 生成的测试实现文件
-        ├── test.pb.h              # 由 protobuf 生成的测试头文件
+        ├── test.pb.cc
+        ├── test.pb.h
         └── test.proto             # 测试使用的 protobuf 定义文件
 ```
