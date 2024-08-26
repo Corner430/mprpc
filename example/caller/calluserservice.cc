@@ -4,10 +4,11 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-  // 整个程序启动以后，想使用mprpc框架来享受rpc服务调用，一定需要先调用框架的初始化函数（只初始化一次）
+  // 整个程序启动以后，想使用 mprpc 框架来享受 rpc 服务调用
+  // 一定需要先调用框架的初始化函数（只初始化一次）
   MprpcApplication::Init(argc, argv);
 
-  // 演示调用远程发布的rpc方法Login
+  // 演示调用远程发布的 rpc 方法 Login
   corner::UserServiceRpc_Stub stub(new MprpcChannel());
   // rpc方法的请求参数
   corner::LoginRequest request;

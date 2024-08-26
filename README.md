@@ -511,6 +511,12 @@ void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr& conn, goog
 
 [Zookeeper 原理详解](https://wxler.github.io/2021/03/01/175946/#42-zxid%E5%92%8Cmyid)
 
+- [Zookeeper C API 库](https://packages.debian.org/source/sid/zookeeper)分为单线程（zookeeper_st）和多线程库（zookeeper_mt）两种：
+  - 单线程库（zookeeper_st）：仅提供异步 API 和回调函数；
+  - 多线程库（zookeeper_mt）：支持同步 API 和异步 API 以及回调，包含一个 IO 线程和一个事件调度线程，用于处理连接和回调。
+
+> 注意 `mt` 版本需要一个 `THREADED` 宏定义来触发
+
 实现的 rpc，发起的 rpc 请求需知道请求的服务在哪台机器，所以需要分布式服务配置中心，所有提供 rpc 的节点，都需向配置中心注册服务，ip+port+服务，当然 zookeeper 不止分布式服务配置，还有其他协调功能，如分布式锁，这里不细述。
 
 callee 启动时，将 UserService 对象发布到 rpc 节点上，也就是将每个类的方法所对应的**分布式节点地址和端口**记录在 zk 服务器上，当调用远程 rpc 方法时，就去 zk 服务器上面查询对应要调用的服务的 ip 和端口
@@ -520,7 +526,7 @@ callee 启动时，将 UserService 对象发布到 rpc 节点上，也就是将�
 ```cpp
 // 把当前rpc节点上要发布的服务全部注册到zk上面，让rpc client可以从zk上发现服务
 ZkClient zkCli;
-zkCli.Start();
+zkCli.Start();  // 内部会通过信号量进行同步阻塞，等待连接成功
 // service_name为永久性节点    method_name为临时性节点
 for (auto &sp : m_serviceMap)
 {
