@@ -19,6 +19,10 @@
    - protobuf 和 zookeeper 安装：`sudo apt install protobuf-compiler zookeeper zookeeper-bin libzookeeper-mt-dev`
    - 还要单独[安装一下 zookeeper 的服务端和客户端](https://zookeeper.apache.org/releases.html)
 
+> 客户端先去 zk 服务器上查询服务的 ip 和 port，然后连接到 rpc 服务节点，发送 rpc 请求，服务节点接收到 rpc 请求后，根据 rpc 请求的数据头，找到对应的服务和方法，调用本地的方法，将结果写入 rpc 响应，再序列化 rpc 响应，发送给客户端
+
+**这里两次连接，不好**
+
 # 分布式网络通信 rpc 框架
 
 ## 1 RPC 概述
@@ -146,133 +150,150 @@ int main(int argc, char **argv) {
 所有通过 `stub` 代理对象调用的 rpc 方法，通过 **C++ 多态**最终都会通过调用 `CallMethod` 实现，该函数首先序列化并拼接发送的 `send_rpc_str` 字符串，其次从 zk 服务器中拿到注册的 rpc 服务端的 ip 和 port，连接到 rpc 服务器并发送请求，接受服务端返回的字节流，并反序列化响应 `response`
 
 ```cpp
-// 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据数据序列化和网络发送
-void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor* method,
-                                google::protobuf::RpcController* controller,
-                                const google::protobuf::Message* request,
-                                google::protobuf::Message* response,
-                                google::protobuf:: Closure* done)
-{
-    const google::protobuf::ServiceDescriptor* sd = method->service();
-    std::string service_name = sd->name(); // service_name
-    std::string method_name = method->name(); // method_name
+// 所有通过 stub 代理对象调用的 rpc 方法，
+// 都在此处统一做 rpc 方法调用的数据数据序列化和网络发送
+void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
+                              google::protobuf::RpcController *controller,
+                              const google::protobuf::Message *request,
+                              google::protobuf::Message *response,
+                              google::protobuf::Closure *done) {
+  const google::protobuf::ServiceDescriptor *sd = method->service();
+  std::string service_name = sd->name();    // service_name
+  std::string method_name = method->name(); // method_name
 
-    // 获取参数的序列化字符串长度 args_size
-    uint32_t args_size = 0;
-    std::string args_str;
-    if (request->SerializeToString(&args_str))
-    {
-        args_size = args_str.size();
-    }
-    else
-    {
-        controller->SetFailed("serialize request error!");
-        return;
-    }
+  // 获取参数的序列化字符串长度 args_size
+  uint32_t args_size = 0;
+  std::string args_str;
+  if (request->SerializeToString(&args_str))
+    args_size = args_str.size();
+  else {
+    controller->SetFailed("serialize request error!");
+    return;
+  }
 
-    // 定义rpc的请求header
-    mprpc::RpcHeader rpcHeader;
-    rpcHeader.set_service_name(service_name);
-    rpcHeader.set_method_name(method_name);
-    rpcHeader.set_args_size(args_size);
+  // 定义 rpc 的请求 header
+  mprpc::RpcHeader rpcHeader;
+  rpcHeader.set_service_name(service_name);
+  rpcHeader.set_method_name(method_name);
+  rpcHeader.set_args_size(args_size);
 
-    uint32_t header_size = 0;
-    std::string rpc_header_str;
-    if (rpcHeader.SerializeToString(&rpc_header_str))
-    {
-        header_size = rpc_header_str.size();
-    }
-    else
-    {
-        controller->SetFailed("serialize rpc header error!");
-        return;
-    }
+  uint32_t header_size = 0;
+  std::string rpc_header_str;
+  if (rpcHeader.SerializeToString(&rpc_header_str))
+    header_size = rpc_header_str.size();
+  else {
+    controller->SetFailed("serialize rpc header error!");
+    return;
+  }
 
-    // 组织待发送的rpc请求的字符串
-    std::string send_rpc_str;
-    send_rpc_str.insert(0, std::string((char*)&header_size, 4)); // header_size
-    send_rpc_str += rpc_header_str; // rpcheader
-    send_rpc_str += args_str; // args
+  // 组织待发送的 rpc 请求的字符串
+  std::string send_rpc_str;
+  send_rpc_str.insert(0, std::string((char *)&header_size, 4)); // header_size
+  send_rpc_str += rpc_header_str;                               // rpcheader
+  send_rpc_str += args_str;                                     // args
 
-    // 使用tcp编程，完成rpc方法的远程调用
-    int clientfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (-1 == clientfd)
-    {
-        char errtxt[512] = {0};
-        sprintf(errtxt, "create socket error! errno:%d", errno);
-        controller->SetFailed(errtxt);
-        return;
-    }
+  // 打印调试信息
+  std::cout << "============================================" << std::endl;
+  std::cout << "header_size: " << header_size << std::endl;
+  std::cout << "rpc_header_str: " << rpc_header_str << std::endl;
+  std::cout << "service_name: " << service_name << std::endl;
+  std::cout << "method_name: " << method_name << std::endl;
+  std::cout << "args_str: " << args_str << std::endl;
+  std::cout << "============================================" << std::endl;
 
-    // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
-    ZkClient zkCli;
-    zkCli.Start();
-    //  /UserServiceRpc/Login
-    std::string method_path = "/" + service_name + "/" + method_name;
-    // 127.0.0.1:8000
-    std::string host_data = zkCli.GetData(method_path.c_str());
-    if (host_data == "")
-    {
-        controller->SetFailed(method_path + " is not exist!");
-        return;
-    }
-    int idx = host_data.find(":");
-    if (idx == -1)
-    {
-        controller->SetFailed(method_path + " address is invalid!");
-        return;
-    }
-    std::string ip = host_data.substr(0, idx);
-    uint16_t port = atoi(host_data.substr(idx+1, host_data.size()-idx).c_str());
+  // 使用 tcp 编程，完成 rpc 方法的远程调用
+  int clientfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (-1 == clientfd) {
+    char errtxt[512] = {0};
+    sprintf(errtxt, "create socket error! errno:%d", errno);
+    controller->SetFailed(errtxt);
+    return;
+  }
 
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    server_addr.sin_addr.s_addr = inet_addr(ip.c_str());
+  // // 读取配置文件 rpcserver 的信息
+  // std::string ip =
+  //     MprpcApplication::GetInstance().GetConfig().Load("rpcserverip");
+  // uint16_t port = atoi(MprpcApplication::GetInstance()
+  //                          .GetConfig()
+  //                          .Load("rpcserverport")
+  //                          .c_str());
 
-    // 连接rpc服务节点
-    if (-1 == connect(clientfd, (struct sockaddr*)&server_addr, sizeof(server_addr)))
-    {
-        close(clientfd);
-        char errtxt[512] = {0};
-        sprintf(errtxt, "connect error! errno:%d", errno);
-        controller->SetFailed(errtxt);
-        return;
-    }
+  /*
+   * rpc 调用方想调用 service_name 的 method_name 服务，
+   * 需要查询 zk 上该服务所在的 host 信息
+   */
+  ZkClient zkCli;
+  zkCli.Start();
 
-    // 发送rpc请求
-    if (-1 == send(clientfd, send_rpc_str.c_str(), send_rpc_str.size(), 0))
-    {
-        close(clientfd);
-        char errtxt[512] = {0};
-        sprintf(errtxt, "send error! errno:%d", errno);
-        controller->SetFailed(errtxt);
-        return;
-    }
+  /* 方法路径：/UserServiceRpc/Login */
+  std::string method_path = "/" + service_name + "/" + method_name;
 
-    // 接收rpc请求的响应值
-    char recv_buf[1024] = {0};
-    int recv_size = 0;
-    if (-1 == (recv_size = recv(clientfd, recv_buf, 1024, 0)))
-    {
-        close(clientfd);
-        char errtxt[512] = {0};
-        sprintf(errtxt, "recv error! errno:%d", errno);
-        controller->SetFailed(errtxt);
-        return;
-    }
+  /* 方法路径节点存的是：127.0.0.1:8000 */
+  std::string host_data = zkCli.GetData(method_path.c_str());
 
-    // 反序列化rpc调用的响应数据
-    if (!response->ParseFromArray(recv_buf, recv_size))
-    {
-        close(clientfd);
-        char errtxt[512] = {0};
-        sprintf(errtxt, "parse error! response_str:%s", recv_buf);
-        controller->SetFailed(errtxt);
-        return;
-    }
+  if (host_data == "") {
+    controller->SetFailed(method_path + " is not exist!");
+    return;
+  }
 
+  int idx = host_data.find(":");
+  if (idx == -1) {
+    controller->SetFailed(method_path + " address is invalid!");
+    return;
+  }
+
+  std::string ip = host_data.substr(0, idx);
+  uint16_t port =
+      atoi(host_data.substr(idx + 1, host_data.size() - idx).c_str());
+
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(port);
+  server_addr.sin_addr.s_addr = inet_addr(ip.c_str());
+
+  // 连接 rpc 服务节点
+  if (-1 ==
+      connect(clientfd, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
     close(clientfd);
+    char errtxt[512] = {0};
+    sprintf(errtxt, "connect error! errno:%d", errno);
+    controller->SetFailed(errtxt);
+    return;
+  }
+
+  // 发送 rpc 请求
+  if (-1 == send(clientfd, send_rpc_str.c_str(), send_rpc_str.size(), 0)) {
+    close(clientfd);
+    char errtxt[512] = {0};
+    sprintf(errtxt, "send error! errno:%d", errno);
+    controller->SetFailed(errtxt);
+    return;
+  }
+
+  // 接收 rpc 请求的响应值
+  char recv_buf[1024] = {0};
+  int recv_size = 0;
+  if (-1 == (recv_size = recv(clientfd, recv_buf, 1024, 0))) {
+    close(clientfd);
+    char errtxt[512] = {0};
+    sprintf(errtxt, "recv error! errno:%d", errno);
+    controller->SetFailed(errtxt);
+    return;
+  }
+
+  // 反序列化 rpc 调用的响应数据
+  // std::string response_str(recv_buf, 0, recv_size);
+  // bug 出现问题，recv_buf 中遇到 \0 后面的数据就存不下来了，导致反序列化失败
+  // if (!response->ParseFromString(response_str))
+  if (!response->ParseFromArray(recv_buf, recv_size)) {
+    close(clientfd);
+    char errtxt[512] = {0};
+    sprintf(errtxt, "parse error! response_str:%s", recv_buf);
+    controller->SetFailed(errtxt);
+    return;
+  }
+
+  close(clientfd);
 }
 ```
 
