@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package corner;
+
+option cc_generic_services = true; // 启用 C++ 代码生成器生成通用的 RPC 服务代码
+
+message ResultCode {
+    int32 errcode = 1;
+    bytes errmsg = 2;
+}
+
+message LoginRequest { // 登录请求消息类型
+    bytes name = 1;
+    bytes pwd = 2;
+}
+
+
+message LoginResponse { // 登录响应消息类型
+    ResultCode result = 1;
+    bool success = 2;
+}
+
+message GetFriendListsRequest {
+    uint32 userid = 1;
+}
+
+message User {
+    bytes name = 1;
+    uint32 age = 2;
+    enum Sex {
+        MAN = 0;
+        WOMAN = 1;
+    }
+    Sex sex = 3;
+}
+
+message GetFriendListsResponse {
+    ResultCode result = 1;
+    repeated User friend_list = 2;
+}
+
+service UserServiceRpc { // rpc 服务接口
+    rpc Login(LoginRequest) returns(LoginResponse);
+    rpc GetFriendLists(GetFriendListsRequest) returns(GetFriendListsResponse);
+}
