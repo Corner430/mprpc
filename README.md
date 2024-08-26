@@ -114,41 +114,36 @@ service UserServiceRpc {
 
 ```cpp
 int main(int argc, char **argv) {
-    // 整个程序启动以后，想使用mprpc框架来享受rpc服务调用，一定需要先调用框架的初始化函数（只初始化一次）
-    MprpcApplication::Init(argc, argv);
+  // 整个程序启动以后，想使用 mprpc 框架来享受 rpc 服务调用
+  // 一定需要先调用框架的初始化函数（只初始化一次）
+  MprpcApplication::Init(argc, argv);
 
-    // 演示调用远程发布的rpc方法Login
-    UserServiceRpc_Stub stub(new MprpcChannel());
-    // rpc方法的请求参数
-    LoginRequest request;
-    request.set_name("zhang san");
-    request.set_pwd("123456");
-    // rpc方法的响应
-    LoginResponse response;
-    // 发起rpc方法的调用  同步的rpc调用过程  MprpcChannel::callmethod
-    MprpcController controller;
-    stub.Login(&controller, &request, &response, nullptr); // RpcChannel->RpcChannel::callMethod 集中来做所有rpc方法调用的参数序列化和网络发送
-    // 一次rpc调用完成，读调用的结果
-    if (controller.Failed())
-    {
-        std::cout << controller.ErrorText() << std::endl;
-    }
+  // 演示调用远程发布的 rpc 方法 Login
+  corner::UserServiceRpc_Stub stub(new MprpcChannel());
+
+  corner::LoginRequest request; // rpc 方法的请求参数
+  request.set_name("zhang san");
+  request.set_pwd("123456");
+
+  corner::LoginResponse response; // rpc 方法的响应
+
+  /* 同步发起 rpc 方法的调用：RpcChannel->RpcChannel::callMethod */
+  MprpcController controller;
+  stub.Login(nullptr, &request, &response, nullptr);
+  if (controller.Failed())
+    std::cout << controller.ErrorText() << std::endl;
+  else {
+    if (0 == response.result().errcode())
+        std::cout << "rpc login response success:" << response.sucess()
+                << std::endl;
     else
-    {
-        // 一次rpc调用完成，读调用的结果
-        if (0 == response.result().errcode())
-        {
-            std::cout << "rpc login response success:" << response.sucess() << std::endl;
+        std::cout << "rpc login response error : " << response.result().errmsg()
+                << std::endl;
         }
-        else
-        {
-            std::cout << "rpc login response error : " << response.result().errmsg() << std::endl;
-        }
-    }
 }
 ```
 
-所有通过 stub 代理对象调用的 rpc 方法，通过 C++多态最终都会通过调用`CallMethod`实现，该函数首先序列化并拼接发送的 send_rpc_str 字符串，其次从 zk 服务器中拿到注册的 rpc 服务端的 ip 和 port，连接到 rpc 服务器并发送请求，接受服务端返回的字节流，并反序列化响应 response
+所有通过 `stub` 代理对象调用的 rpc 方法，通过 **C++ 多态**最终都会通过调用 `CallMethod` 实现，该函数首先序列化并拼接发送的 `send_rpc_str` 字符串，其次从 zk 服务器中拿到注册的 rpc 服务端的 ip 和 port，连接到 rpc 服务器并发送请求，接受服务端返回的字节流，并反序列化响应 `response`
 
 ```cpp
 // 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据数据序列化和网络发送
@@ -641,12 +636,12 @@ Logger::Logger()
 │   ├── lockqueue.h                 # 锁队列的头文件
 │   ├── logger.h                    # 日志记录器的头文件
 │   ├── mprpcapplication.h          # mprpc 框架的单例基础类，负责框架的一些初始化操作
-│   ├── mprpcchannel.h              # mprpc 通道的头文件
+│   ├── mprpcchannel.h              #
 │   ├── mprpcconfig.h               # 读取配置文件：rpcserverip:port, zookeeperip:port
-│   ├── mprpccontroller.h           # mprpc 控制器的头文件
+│   ├── mprpccontroller.h           # 可以在请求和响应之间传递必要的上下文信息，提供给 CallMethod 使用
 │   ├── rpcheader.pb.h              # 由 protobuf 生成的 RPC 头文件
-│   ├── rpcprovider.h               # RPC 提供者的头文件
-│   └── zookeeperutil.h             # Zookeeper 工具的头文件
+│   ├── rpcprovider.h               #
+│   └── zookeeperutil.h             # 封装的 ZooKeeper 客户端类
 ├── README.md                       # 项目说明文件
 ├── src                             # 源代码目录
 │   ├── CMakeLists.txt              # src 目录的 CMake 构建配置文件
