@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-class FriendService : public fixbug::FiendServiceRpc {
+class FriendService : public corner::FiendServiceRpc {
 public:
   std::vector<std::string> GetFriendsList(uint32_t userid) {
     std::cout << "do GetFriendsList service! userid:" << userid << std::endl;
@@ -19,8 +19,8 @@ public:
 
   // 重写基类方法
   void GetFriendsList(::google::protobuf::RpcController *controller,
-                      const ::fixbug::GetFriendsListRequest *request,
-                      ::fixbug::GetFriendsListResponse *response,
+                      const ::corner::GetFriendsListRequest *request,
+                      ::corner::GetFriendsListResponse *response,
                       ::google::protobuf::Closure *done) {
     uint32_t userid = request->userid();
     std::vector<std::string> friendsList = GetFriendsList(userid);
