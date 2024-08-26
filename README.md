@@ -76,22 +76,22 @@ RPC 通信过程中的代码调用流程图如图：
 
 #### 2.1.1 数据结构定义
 
-以 user.proto 中的`Login`函数请求参数为例说明参数结构体定义，其他函数类似：
+以 `user.proto` 中的`Login`函数请求参数为例说明参数结构体定义，其他函数类似：
 
 ```protobuf
-message LoginRequest { // Login函数的参数
+message LoginRequest { // Login 函数的参数
   bytes name = 1;
   bytes pwd = 2;
 }
 ```
 
-使用 protoc 编译 proto 文件：
+使用 protoc 编译 `proto` 文件：
 
 ```sh
 protoc user.proto -I ./ -cpp_out=./user
 ```
 
-得到 user.pb.cc 和 user.pb.h，**每个 message 结构体都生成个类**，如上面说的 LoginRequest 生成继承自 google::protobuf::Message 的 LoginRequest 类，主要包含定义的私有成员变量及读取设置变量的成员函数，如 name 对应的`name()`和`set_name()`两个读取和设置函数；**每个 service 结构体都生成两个关键类**，以 user.proto 中定义的 UserServiceRpc 为例，生成继承自 google::protobuf::Service 的**UserServiceRpc**和继承自 UserServiceRpc 的**UserServiceRpc_Stub**类，前者给服务方 callee 使用，后者给调用方 caller 使用，并且都生成`Login`和`Register`虚函数，UserServiceRpc 类中还包括重要的 CallMethod 方法
+得到 `user.pb.cc` 和 `user.pb.h`，**每个 message 结构体都生成一个类**，如上面说的 `LoginRequest` 生成继承自 `google::protobuf::Message` 的 `LoginRequest` 类，主要包含定义的私有成员变量及读取设置变量的成员函数，如 `name` 对应的`name()`和`set_name()`两个读取和设置函数；**每个 `service` 结构体都生成两个关键类**，以 `user.proto` 中定义的 `UserServiceRpc` 为例，生成继承自 `google::protobuf::Service` 的**`UserServiceRpc`**和继承自 `UserServiceRpc` 的** `UserServiceRpc_Stub` **类，前者给服务方 `callee` 使用，后者给调用方 `caller` 使用，并且都生成 `Login` 和 `Register` 虚函数，`UserServiceRpc` 类中还包括重要的 `CallMethod` 方法
 
 ```protobuf
 service UserServiceRpc {
@@ -100,11 +100,11 @@ service UserServiceRpc {
 }
 ```
 
-以`Login`方法为例，Caller 调用远程方法`Login`，Callee 中的`Login`接收`LoginRequest`消息体，执行完`Login`后将结果写入 LoginResponse 消息体，再返回给 Caller
+以 `Login` 方法为例，Caller 调用远程方法 `Login`，Callee 中的 `Login` 接收 `LoginRequest` 消息体，执行完 `Login` 后将结果写入 `LoginResponse` 消息体，再返回给 `Caller`
 
 #### 2.1.2 caller
 
-调用方将继承自 google::protobuf::RpcChannel 的 MprpcChannel 的对象，传入 UserServiceRpc_Stub 构造函数生成对象 stub，设置远程调用`Login`的请求参数 request，并由 stub 调用成员函数`Login`一直阻塞等待远程调用的响应，而`Login`函数实际被传入的 channel 对象调用`CallMethod`，在`CallMethod`中设置`controller`对象和`response`对象，前者在函数出错时设置 rpc 调用过程的状态，后者是远程调用的响应
+调用方将继承自 `google::protobuf::RpcChannel` 的 `MprpcChannel` 的对象，传入 `UserServiceRpc_Stub` 构造函数生成对象 `stub`，设置远程调用`Login`的请求参数 `request`，并由 `stub` 调用成员函数 `Login` 一直阻塞等待远程调用的响应，而`Login`函数实际被传入的 `channel` 对象调用`CallMethod`，在`CallMethod`中设置`controller`对象和`response`对象，前者在函数出错时设置 `rpc` 调用过程的状态，后者是远程调用的响应
 
 ```cpp
 int main(int argc, char **argv) {
@@ -459,8 +459,8 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 
 ```cpp
 void Login(::google::protobuf::RpcController* controller,
-                       const ::fixbug::LoginRequest* request,
-                       ::fixbug::LoginResponse* response,
+                       const ::corner::LoginRequest* request,
+                       ::corner::LoginResponse* response,
                        ::google::protobuf::Closure* done)
     {
         // 框架给业务上报了请求参数LoginRequest，应用获取相应数据做本地业务
@@ -471,7 +471,7 @@ void Login(::google::protobuf::RpcController* controller,
         bool login_result = Login(name, pwd);
 
         // 把响应写入  包括错误码、错误消息、返回值
-        fixbug::ResultCode *code = response->mutable_result();
+        corner::ResultCode *code = response->mutable_result();
         code->set_errcode(0);
         code->set_errmsg("");
         response->set_sucess(login_result);
@@ -502,6 +502,8 @@ void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr& conn, goog
 ```
 
 ### 2.2 zookeeper
+
+[Zookeeper 原理详解](https://wxler.github.io/2021/03/01/175946/#42-zxid%E5%92%8Cmyid)
 
 实现的 rpc，发起的 rpc 请求需知道请求的服务在哪台机器，所以需要分布式服务配置中心，所有提供 rpc 的节点，都需向配置中心注册服务，ip+port+服务，当然 zookeeper 不止分布式服务配置，还有其他协调功能，如分布式锁，这里不细述。
 
