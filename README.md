@@ -15,6 +15,9 @@
 
 1. 使用方式：包含 `include` 目录，链接 `lib` 目录下的 `libmprpc.a` 库文件，即可使用 mprpc 框架。具体使用方式可参考 `example` 目录下的示例代码。
 2. 开发环境：muduo、protobuf、zookeeper、C++11
+   - muduo 安装参考 [chatserver 单机版](https://github.com/Corner430/Docker)
+   - protobuf 和 zookeeper 安装：`sudo apt install protobuf-compiler zookeeper zookeeper-bin libzookeeper-mt-dev`
+   - 还要单独[安装一下 zookeeper 的服务端和客户端](https://zookeeper.apache.org/releases.html)
 
 # 分布式网络通信 rpc 框架
 
