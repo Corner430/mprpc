@@ -14,7 +14,9 @@
 /*
 header_size + service_name method_name args_size + args
 */
-// 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据数据序列化和网络发送
+
+// 所有通过 stub 代理对象调用的 rpc 方法，
+// 都在此处统一做 rpc 方法调用的数据数据序列化和网络发送
 void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
                               google::protobuf::RpcController *controller,
                               const google::protobuf::Message *request,
@@ -27,14 +29,14 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   // 获取参数的序列化字符串长度 args_size
   uint32_t args_size = 0;
   std::string args_str;
-  if (request->SerializeToString(&args_str)) {
+  if (request->SerializeToString(&args_str))
     args_size = args_str.size();
-  } else {
+  else {
     controller->SetFailed("serialize request error!");
     return;
   }
 
-  // 定义rpc的请求header
+  // 定义 rpc 的请求 header
   mprpc::RpcHeader rpcHeader;
   rpcHeader.set_service_name(service_name);
   rpcHeader.set_method_name(method_name);
@@ -42,9 +44,9 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
   uint32_t header_size = 0;
   std::string rpc_header_str;
-  if (rpcHeader.SerializeToString(&rpc_header_str)) {
+  if (rpcHeader.SerializeToString(&rpc_header_str))
     header_size = rpc_header_str.size();
-  } else {
+  else {
     controller->SetFailed("serialize rpc header error!");
     return;
   }
@@ -103,7 +105,7 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   server_addr.sin_port = htons(port);
   server_addr.sin_addr.s_addr = inet_addr(ip.c_str());
 
-  // 连接rpc服务节点
+  // 连接 rpc 服务节点
   if (-1 ==
       connect(clientfd, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
     close(clientfd);
@@ -113,7 +115,7 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     return;
   }
 
-  // 发送rpc请求
+  // 发送 rpc 请求
   if (-1 == send(clientfd, send_rpc_str.c_str(), send_rpc_str.size(), 0)) {
     close(clientfd);
     char errtxt[512] = {0};
@@ -122,7 +124,7 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     return;
   }
 
-  // 接收rpc请求的响应值
+  // 接收 rpc 请求的响应值
   char recv_buf[1024] = {0};
   int recv_size = 0;
   if (-1 == (recv_size = recv(clientfd, recv_buf, 1024, 0))) {
@@ -133,10 +135,10 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     return;
   }
 
-  // 反序列化rpc调用的响应数据
-  // std::string response_str(recv_buf, 0, recv_size); //
-  // bug出现问题，recv_buf中遇到\0后面的数据就存不下来了，导致反序列化失败 if
-  // (!response->ParseFromString(response_str))
+  // 反序列化 rpc 调用的响应数据
+  // std::string response_str(recv_buf, 0, recv_size);
+  // bug 出现问题，recv_buf 中遇到 \0 后面的数据就存不下来了，导致反序列化失败
+  // if (!response->ParseFromString(response_str))
   if (!response->ParseFromArray(recv_buf, recv_size)) {
     close(clientfd);
     char errtxt[512] = {0};
