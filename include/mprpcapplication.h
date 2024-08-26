@@ -4,8 +4,8 @@
 #include "mprpcconfig.h"
 #include "mprpccontroller.h"
 
-// mprpc框架的基础类，负责框架的一些初始化操作
-class MprpcApplication {
+// mprpc 框架的基础类，负责框架的一些初始化操作
+class MprpcApplication { // 单例类
 public:
   static void Init(int argc, char **argv);
   static MprpcApplication &GetInstance();

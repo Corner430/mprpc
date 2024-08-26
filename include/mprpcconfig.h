@@ -3,8 +3,9 @@
 #include <string>
 #include <unordered_map>
 
-// rpcserverip   rpcserverport    zookeeperip   zookeeperport
-// 框架读取配置文件类
+/*
+ * 框架读取配置文件类：rpcserverip, rpcserverport, zookeeperip, zookeeperport
+ */
 class MprpcConfig {
 public:
   void LoadConfigFile(const char *config_file); // 负责解析加载配置文件
