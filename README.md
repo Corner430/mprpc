@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
     else
         std::cout << "rpc login response error : " << response.result().errmsg()
                 << std::endl;
-        }
+  }
 }
 ```
 
@@ -636,7 +636,7 @@ Logger::Logger()
 │   ├── lockqueue.h                 # 锁队列的头文件
 │   ├── logger.h                    # 日志记录器的头文件
 │   ├── mprpcapplication.h          # mprpc 框架的单例基础类，负责框架的一些初始化操作
-│   ├── mprpcchannel.h              #
+│   ├── mprpcchannel.h              # 在此处统一做 rpc 方法调用的数据数据序列化和网络发送，实现 CallMethod
 │   ├── mprpcconfig.h               # 读取配置文件：rpcserverip:port, zookeeperip:port
 │   ├── mprpccontroller.h           # 可以在请求和响应之间传递必要的上下文信息，提供给 CallMethod 使用
 │   ├── rpcheader.pb.h              # 由 protobuf 生成的 RPC 头文件
