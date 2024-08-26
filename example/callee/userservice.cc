@@ -68,14 +68,14 @@ public:
 };
 
 int main(int argc, char **argv) {
-  // 调用框架的初始化操作
-  MprpcApplication::Init(argc, argv);
+  MprpcApplication::Init(argc, argv); // 调用框架的初始化操作
 
-  // provider是一个rpc网络服务对象。把UserService对象发布到rpc节点上
+  // provider 是一个 rpc 网络服务对象。把 UserService 对象发布到 rpc 节点上
   RpcProvider provider;
   provider.NotifyService(new UserService());
 
-  // 启动一个rpc服务发布节点   Run以后，进程进入阻塞状态，等待远程的rpc调用请求
+  // 启动一个rpc服务发布节点
+  // Run 以后，进程进入阻塞状态，等待远程的 rpc 调用请求
   provider.Run();
 
   return 0;

@@ -299,11 +299,10 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
 #### 2.1.3 callee
 
-服务方将继承自 UserServiceRpc 的 UserService 类的对象，传入 RpcProvider 类的构造函数生成对象 provider，provider 是 rpc 服务对象，调用`NotifyService`将 UserService 对象发布到 rpc 节点上，调用`Run`启动 rpc 服务节点，提供 rpc 远程调用服务
+服务方将继承自 UserServiceRpc 的 UserService 类的对象，传入 RpcProvider 类的构造函数生成对象 provider，provider 是 rpc 服务对象，调用 `NotifyService` 将 UserService 对象发布到 rpc 节点上，调用 `Run` 启动 rpc 服务节点，提供 rpc 远程调用服务
 
 ```cpp
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     // 调用框架的初始化操作
     MprpcApplication::Init(argc, argv);
 
@@ -564,12 +563,17 @@ for (auto &sp : m_serviceMap)
 查询服务：
 
 ```cpp
-// rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
+/*
+ * rpc 调用方想调用 service_name 的 method_name 服务，
+ * 需要查询 zk 上该服务所在的 host 信息
+ */
 ZkClient zkCli;
 zkCli.Start();
-//  /UserServiceRpc/Login
+
+/* 方法路径：/UserServiceRpc/Login */
 std::string method_path = "/" + service_name + "/" + method_name;
-// 127.0.0.1:8000
+
+/* 方法路径节点存的是：127.0.0.1:8000 */
 std::string host_data = zkCli.GetData(method_path.c_str());
 ```
 
@@ -661,7 +665,7 @@ Logger::Logger()
 │   ├── mprpcconfig.h               # 读取配置文件：rpcserverip:port, zookeeperip:port
 │   ├── mprpccontroller.h           # 可以在请求和响应之间传递必要的上下文信息，提供给 CallMethod 使用
 │   ├── rpcheader.pb.h              # 由 protobuf 生成的 RPC 头文件
-│   ├── rpcprovider.h               #
+│   ├── rpcprovider.h               # 负责提供服务，返回响应，设置回调
 │   └── zookeeperutil.h             # 封装的 ZooKeeper 客户端类
 ├── README.md                       # 项目说明文件
 ├── src                             # 源代码目录
