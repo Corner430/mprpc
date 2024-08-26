@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-// 负责解析加载配置文件
+/* 负责解析加载配置文件 */
 void MprpcConfig::LoadConfigFile(const char *config_file) {
   FILE *pf = fopen(config_file, "r");
   if (nullptr == pf) {
@@ -11,32 +11,31 @@ void MprpcConfig::LoadConfigFile(const char *config_file) {
     exit(EXIT_FAILURE);
   }
 
-  // 1.注释   2.正确的配置项 =    3.去掉开头的多余的空格
+  /*
+   * 1. 去除空格
+   * 2. 判断是否是注释或空行
+   * 3. 解析配置项，即 key=value
+   */
   while (!feof(pf)) {
     char buf[512] = {0};
-    fgets(buf, 512, pf);
+    fgets(buf, 512, pf); // 读取一行配置项
 
-    // 去掉字符串前面多余的空格
     std::string read_buf(buf);
-    Trim(read_buf);
+    Trim(read_buf); // 1. 去掉字符串前后的空格
 
-    // 判断#的注释
-    if (read_buf[0] == '#' || read_buf.empty()) {
+    // 2. 判断 # 的注释或者空行
+    if (read_buf[0] == '#' || read_buf.empty())
       continue;
-    }
 
-    // 解析配置项
+    // 3. 解析配置项
     int idx = read_buf.find('=');
-    if (idx == -1) {
-      // 配置项不合法
+    if (idx == -1)
       continue;
-    }
 
     std::string key;
     std::string value;
     key = read_buf.substr(0, idx);
     Trim(key);
-    // rpcserverip=127.0.0.1\n
     int endidx = read_buf.find('\n', idx);
     value = read_buf.substr(idx + 1, endidx - idx - 1);
     Trim(value);
@@ -46,26 +45,21 @@ void MprpcConfig::LoadConfigFile(const char *config_file) {
   fclose(pf);
 }
 
-// 查询配置项信息
+/* 查询配置项信息 */
 std::string MprpcConfig::Load(const std::string &key) {
   auto it = m_configMap.find(key);
-  if (it == m_configMap.end()) {
+  if (it == m_configMap.end())
     return "";
-  }
   return it->second;
 }
 
-// 去掉字符串前后的空格
+/* 去掉字符串前后的空格 */
 void MprpcConfig::Trim(std::string &src_buf) {
-  int idx = src_buf.find_first_not_of(' ');
-  if (idx != -1) {
-    // 说明字符串前面有空格
+  int idx = src_buf.find_first_not_of(' '); // 查找字符串中第一个非空格字符
+  if (idx != -1)
     src_buf = src_buf.substr(idx, src_buf.size() - idx);
-  }
-  // 去掉字符串后面多余的空格
-  idx = src_buf.find_last_not_of(' ');
-  if (idx != -1) {
-    // 说明字符串后面有空格
+
+  idx = src_buf.find_last_not_of(' '); // 查找字符串中最后一个非空格字符
+  if (idx != -1)
     src_buf = src_buf.substr(0, idx + 1);
-  }
 }
