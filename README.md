@@ -587,7 +587,6 @@ for (auto &mp : sp.second.m_methodMap) {
     zkCli.Create(method_path.c_str(), method_path_data,
                 strlen(method_path_data), ZOO_EPHEMERAL);
 }
-}
 ```
 
 查询服务：
@@ -609,46 +608,40 @@ std::string host_data = zkCli.GetData(method_path.c_str());
 
 ### 2.3 日志
 
-借助线程安全的消息队列（日志队列为空则线程进入 wait 状态，否则唤醒线程），将要写的日志都压入消息队列中，再单独开一个线程负责将消息队列的日志写入到磁盘文件中
+**借助线程安全的消息队列（日志队列为空则线程进入 `wait` 状态，否则唤醒线程），将要写的日志都压入消息队列中，再单独开一个线程负责将消息队列的日志写入到磁盘文件中**
 
 ```cpp
-Logger::Logger()
-{
-    // 启动专门的写日志线程
-    std::thread writeLogTask([&](){
-        for (;;)
-        {
-            // 获取当前的日期，然后取日志信息，写入相应的日志文件当中 a+
-            time_t now = time(nullptr);
-            tm *nowtm = localtime(&now);
+Logger::Logger() {
+  std::thread writeLogTask([&]() { // 启动专门的写日志线程
+    for (;;) {
+      // 获取当前的日期，然后取日志信息，读写追加到相应的日志文件当中
+      time_t now = time(nullptr);
+      tm *nowtm = localtime(&now);
 
-            char file_name[128];
-            sprintf(file_name, "%d-%d-%d-log.txt", nowtm->tm_year+1900, nowtm->tm_mon+1, nowtm->tm_mday);
+      char file_name[128];
+      sprintf(file_name, "%d-%d-%d-log.txt", nowtm->tm_year + 1900,
+              nowtm->tm_mon + 1, nowtm->tm_mday);
 
-            FILE *pf = fopen(file_name, "a+");
-            if (pf == nullptr)
-            {
-                std::cout << "logger file : " << file_name << " open error!" << std::endl;
-                exit(EXIT_FAILURE);
-            }
+      FILE *pf = fopen(file_name, "a+");
+      if (pf == nullptr) {
+        std::cout << "logger file : " << file_name << " open error!"
+                  << std::endl;
+        exit(EXIT_FAILURE);
+      }
 
-            std::string msg = m_lckQue.Pop();
+      std::string msg = m_lckQue.Pop();
 
-            char time_buf[128] = {0};
-            sprintf(time_buf, "%d:%d:%d =>[%s] ",
-                    nowtm->tm_hour,
-                    nowtm->tm_min,
-                    nowtm->tm_sec,
-                    (m_loglevel == INFO ? "info" : "error"));
-            msg.insert(0, time_buf);
-            msg.append("\n");
+      char time_buf[128] = {0};
+      sprintf(time_buf, "%d:%d:%d =>[%s] ", nowtm->tm_hour, nowtm->tm_min,
+              nowtm->tm_sec, (m_loglevel == INFO ? "info" : "error"));
+      msg.insert(0, time_buf);
+      msg.append("\n");
 
-            fputs(msg.c_str(), pf);
-            fclose(pf);
-        }
-    });
-    // 设置分离线程，守护线程
-    writeLogTask.detach();
+      fputs(msg.c_str(), pf);
+      fclose(pf);
+    }
+  });
+  writeLogTask.detach(); // 设置分离线程，守护线程
 }
 ```
 
@@ -688,8 +681,8 @@ Logger::Logger()
 ├── lib                             # 库文件目录
 │   └── libmprpc.a                  # 编译生成的 mprpc 静态库
 ├── include                         # 头文件目录
-│   ├── lockqueue.h
-│   ├── logger.h
+│   ├── lockqueue.h                 # 异步写日志的日志队列
+│   ├── logger.h                    # 本框架提供的线程安全的日志库，将日志写入到磁盘文件
 │   ├── mprpcapplication.h          # mprpc 框架的单例基础类，负责框架的一些初始化操作
 │   ├── mprpcchannel.h              # 在此处统一做 rpc 方法调用的数据数据序列化和网络发送，实现 CallMethod
 │   ├── mprpcconfig.h               # 读取配置文件：rpcserverip:port, zookeeperip:port

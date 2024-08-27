@@ -2,17 +2,15 @@
 #include <iostream>
 #include <time.h>
 
-// 获取日志的单例
-Logger &Logger::GetInstance() {
+Logger &Logger::GetInstance() { // 获取日志的单例
   static Logger logger;
   return logger;
 }
 
 Logger::Logger() {
-  // 启动专门的写日志线程
-  std::thread writeLogTask([&]() {
+  std::thread writeLogTask([&]() { // 启动专门的写日志线程
     for (;;) {
-      // 获取当前的日期，然后取日志信息，写入相应的日志文件当中 a+
+      // 获取当前的日期，然后取日志信息，读写追加到相应的日志文件当中
       time_t now = time(nullptr);
       tm *nowtm = localtime(&now);
 
@@ -39,8 +37,7 @@ Logger::Logger() {
       fclose(pf);
     }
   });
-  // 设置分离线程，守护线程
-  writeLogTask.detach();
+  writeLogTask.detach(); // 设置分离线程，守护线程
 }
 
 // 设置日志级别
